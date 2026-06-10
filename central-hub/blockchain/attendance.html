@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Blockchain Attendance Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #141e30, #243b55);
+            min-height: 100vh;
+            padding: 30px;
+            color: white;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input {
+            padding: 10px 14px;
+            border-radius: 30px;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        button {
+            padding: 10px 18px;
+            border-radius: 30px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-filter {
+            background: linear-gradient(45deg, #00c6ff, #0072ff);
+            color: white;
+        }
+
+        .btn-reset {
+            background: linear-gradient(45deg, #ff512f, #dd2476);
+            color: white;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #38ef7d, #11998e);
+            color: black;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .badge-present {
+            background: #38ef7d;
+            color: black;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .badge-absent {
+            background: #ff4b2b;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .percentage-box {
+            font-weight: 700;
+            color: #00ffd5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <h1>Blockchain Attendance Dashboard</h1>
+        </div>
+
+        <div class="glass-card">
+
+            <div class="controls">
+                <div class="filters">
+                    <input type="date" id="dateFilter">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="tillNow"> Till Now
+                    </label>
+                    <input type="text" id="studentFilter" placeholder="Student ID">
+                    <button class="btn-filter" onclick="applyFilters()">Apply</button>
+                    <button class="btn-reset" onclick="resetFilters()">Reset</button>
+                </div>
+
+                <div class="tab-buttons hidden" id="tabSection">
+                    <button id="attendanceBtn" class="tab-btn active" onclick="showAttendance()">Attendance</button>
+                    <button id="percentageBtn" class="tab-btn" onclick="showPercentage()">Percentage</button>
+                </div>
+            </div>
+
+            <!-- ATTENDANCE TABLE -->
+            <table id="recordTable" class="hidden">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Date</th>
+                        <th>P1</th>
+                        <th>P2</th>
+                        <th>P3</th>
+                        <th>P4</th>
+                        <th>P5</th>
+                        <th>P6</th>
+                        <th>P7</th>
+                        <th>P8</th>
+                        <th>P9</th>
+                        <th>P10</th>
+                        <th>P11</th>
+                        <th>P12</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <!-- PERCENTAGE TABLE -->
+            <table id="percentageTable" class="hidden">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Total Days</th>
+                        <th>Present</th>
+                        <th>Total Periods</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <script>
+
+        let fullData = [];
+
+        fetch("http://100.73.59.102:8080/attendance")
+            .then(res => res.json())
+            .then(data => {
+                fullData = data;
+            });
+
+        function applyFilters() {
+
+            const date = document.getElementById("dateFilter").value;
+            const tillNow = document.getElementById("tillNow").checked;
+            const student = document.getElementById("studentFilter").value.trim();
+
+            if (!date && !tillNow && !student) {
+                alert("Please select a filter first.");
+                return;
+            }
+
+            let filtered = fullData.filter(rec => {
+
+                let matchStudent = student ? rec.stdid === student : true;
+
+                let matchDate = true;
+                if (date && !tillNow) {
+                    matchDate = rec.date === date;
+                }
+                else if (date && tillNow) {
+                    matchDate = rec.date <= date;
+                }
+
+                return matchStudent && matchDate;
+            });
+
+            renderRecords(filtered);
+            renderPercentage(filtered);
+
+            document.getElementById("tabSection").classList.remove("hidden");
+            document.getElementById("recordTable").classList.remove("hidden");
+        }
+
+        function resetFilters() {
+            document.getElementById("dateFilter").value = "";
+            document.getElementById("tillNow").checked = false;
+            document.getElementById("studentFilter").value = "";
+
+            document.getElementById("recordTable").classList.add("hidden");
+            document.getElementById("percentageTable").classList.add("hidden");
+            document.getElementById("tabSection").classList.add("hidden");
+        }
+
+        function showAttendance() {
+            document.getElementById("recordTable").classList.remove("hidden");
+            document.getElementById("percentageTable").classList.add("hidden");
+            document.getElementById("attendanceBtn").classList.add("active");
+            document.getElementById("percentageBtn").classList.remove("active");
+        }
+
+        function showPercentage() {
+            document.getElementById("recordTable").classList.add("hidden");
+            document.getElementById("percentageTable").classList.remove("hidden");
+            document.getElementById("percentageBtn").classList.add("active");
+            document.getElementById("attendanceBtn").classList.remove("active");
+        }
+
+        function renderRecords(data) {
+            const tbody = document.querySelector("#recordTable tbody");
+            tbody.innerHTML = "";
+
+            data.forEach(rec => {
+                let periodHTML = "";
+                for (let i = 1; i <= 12; i++) {
+                    let val = rec["period" + i];
+                    periodHTML += `
+                <td>
+                    <span class="${val == 1 ? 'badge-present' : 'badge-absent'}">
+                        ${val == 1 ? 'P' : 'A'}
+                    </span>
+                </td>`;
+                }
+
+                tbody.innerHTML += `
+            <tr>
+                <td>${rec.stdid}</td>
+                <td>${rec.date}</td>
+                ${periodHTML}
+            </tr>`;
+            });
+        }
+
+        function renderPercentage(data) {
+            const tbody = document.querySelector("#percentageTable tbody");
+            tbody.innerHTML = "";
+            let studentMap = {};
+
+            data.forEach(rec => {
+                if (!studentMap[rec.stdid]) {
+                    studentMap[rec.stdid] = { days: 0, present: 0, periods: 0 };
+                }
+
+                studentMap[rec.stdid].days++;
+
+                for (let i = 1; i <= 12; i++) {
+                    studentMap[rec.stdid].periods++;
+                    if (rec["period" + i] == 1) {
+                        studentMap[rec.stdid].present++;
+                    }
+                }
+            });
+
+            for (let stdid in studentMap) {
+                let s = studentMap[stdid];
+                let percent = ((s.present / s.periods) * 100).toFixed(2);
+
+                tbody.innerHTML += `
+            <tr>
+                <td>${stdid}</td>
+                <td>${s.days}</td>
+                <td>${s.present}</td>
+                <td>${s.periods}</td>
+                <td class="percentage-box">${percent}%</td>
+            </tr>`;
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>
