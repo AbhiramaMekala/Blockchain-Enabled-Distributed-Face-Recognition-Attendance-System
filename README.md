@@ -145,6 +145,68 @@ The SQLite table created by `create_db.py` uses one row per student per date and
 
 This codebase is hardware-specific. Use the Jetson Nano for the edge module and the Raspberry Pi 4 for the hub. This laptop is only appropriate for editing, documentation, or code review unless you replace the hardware-specific camera and network settings.
 
+## Example Runbook
+
+The commands below match the way this project is typically run, but the paths, virtual environment names, host IPs, and ports may need to change for your own setup.
+
+### Edge Module On Jetson Nano
+
+Open one shell on the Jetson Nano and activate the edge environment first:
+
+```bash
+source ~/Desktop/hemanth/hemanth/bin/activate
+cd ~/Desktop/hemanth/face-attendance/
+python3 src/server.py
+```
+
+Open a second shell for live recognition:
+
+```bash
+cd ~/Desktop/hemanth/face-attendance/
+python3 src/attendance_system.py
+```
+
+If you prefer to launch both processes together, keep in mind that the web server and recognition loop should stay in separate terminals for easier debugging.
+
+### Central Hub On Raspberry Pi 4
+
+Run the hub pieces in separate terminals so the receiver, blockchain node, and demo tools can stay independent:
+
+```bash
+cd ~/Desktop/database
+python3 receiver_server.py
+```
+
+```bash
+cd ~/attendance-chain/
+./attendance-chain
+```
+
+```bash
+cd ~/attendance-chain/
+python3 -m http.server 9000
+```
+
+When you are ready to export the day and publish the records:
+
+```bash
+cd ~/Desktop/database
+python3 daily_close.py
+python3 send_to_blockchain.py attendance_2026-**-**.json
+```
+
+### Demo Time Sync
+
+If you are replaying a test day, disable automatic time sync, set the system clock, then re-enable sync after the test:
+
+```bash
+sudo timedatectl set-ntp false
+sudo timedatectl set-time "2026-05-19 13:45:00"
+sudo timedatectl set-ntp true
+```
+
+Only use this on a test machine or during a controlled demo.
+
 ### Edge Module Setup
 
 ```bash
