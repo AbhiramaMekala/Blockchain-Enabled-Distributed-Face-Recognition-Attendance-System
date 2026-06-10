@@ -141,6 +141,36 @@ The SQLite table created by `create_db.py` uses one row per student per date and
 4. Send the exported JSON with `central-hub/api-server/send_to_blockchain.py`.
 5. Run `central-hub/blockchain/main.go` to host the blockchain node and the `/attendance` API.
 
+## Inputs And Outputs
+
+This project has several distinct inputs and outputs, and the README now reflects them explicitly.
+
+### Edge Inputs
+
+- Live camera frames from the Jetson Nano camera pipeline.
+- Registered face data from `edge-module/data/encodings.npy` and `edge-module/data/names.npy`.
+- Timetable and processing settings from `edge-module/src/config.py`.
+
+### Edge Outputs
+
+- Live attendance log rows in `edge-module/logs/attendance.csv`.
+- Per-day or per-period CSV exports in `edge-module/logs/attendance_YYYY-MM-DD.csv`.
+- Period payloads posted to the Raspberry Pi receiver by `edge-module/src/send_period_from_csv.py`.
+- Edge-side dashboard JSON from `GET /api/attendance/latest`.
+
+### Hub Inputs
+
+- Period payloads received at `POST /upload_period_csv`.
+- Daily exported attendance JSON files from `daily_close.py`.
+- Transaction records posted to the local Tendermint RPC endpoint.
+
+### Hub Outputs
+
+- SQLite rows in `central-hub/api-server/attendance.db`.
+- Daily JSON snapshots such as `central-hub/api-server/attendance_YYYY-MM-DD.json`.
+- Blockchain transactions stored by the ABCI application.
+- Dashboard data served by `GET /attendance` for the web UI in `central-hub/blockchain/attendance.html`.
+
 ## Running The Project
 
 This codebase is hardware-specific. Use the Jetson Nano for the edge module and the Raspberry Pi 4 for the hub. This laptop is only appropriate for editing, documentation, or code review unless you replace the hardware-specific camera and network settings.
@@ -194,6 +224,8 @@ cd ~/Desktop/database
 python3 daily_close.py
 python3 send_to_blockchain.py attendance_2026-**-**.json
 ```
+
+The blockchain dashboard in `central-hub/blockchain/attendance.html` currently points to a fixed attendance API host. If you move the hub or run the API on another machine, update that URL before using the page.
 
 ### Demo Time Sync
 
@@ -253,7 +285,7 @@ python3 send_to_blockchain.py attendance_YYYY-MM-DD.json
 - The Jetson Nano camera pipeline in `config.py` will not run on a normal laptop camera without changes.
 - Several scripts currently use hard-coded IP addresses for the Raspberry Pi hub. Replace them with the real deployment address before running across devices.
 - The files under `data/`, `logs/`, and `central-hub/api-server/attendance.db` are runtime artifacts and example outputs, not the source of truth.
-- `central-hub/blockchain/attendance.html` currently fetches attendance from a fixed host. Update that host if the blockchain API is deployed elsewhere.
+- `central-hub/blockchain/attendance.html` currently fetches attendance from a fixed host and should be edited if the API moves.
 
 ## Suggested Next Step
 
